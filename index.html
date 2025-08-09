@@ -180,7 +180,7 @@ let bgAudio = { global:null, task:null };
 let padNodes = { global:null, task:null };
 let previewAudio = null;
 let singleChimeRef = null;
-let preloadedChime = null; // preloaded alarm sound (создаём при старте таймера по клику)
+
 function ensureAudioCtx(){ if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
 
 /* Background music: try HTMLAudio, fallback to pad nodes */
