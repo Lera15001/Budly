@@ -180,7 +180,7 @@ let bgAudio = { global:null, task:null };
 let padNodes = { global:null, task:null };
 let previewAudio = null;
 let singleChimeRef = null;
-
+let preloadedChime = null; // предзагруженный сигнал для мобильных
 function ensureAudioCtx(){ if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
 
 /* Background music: try HTMLAudio, fallback to pad nodes */
@@ -892,21 +892,18 @@ let tickInterval = null;
 function startActivity(taskId, overrideSeconds, taskObj, opts={}){
   const task = taskObj || state.tasks.find(x=>x.id===taskId) || { id:taskId, title:taskId };
   const duration = overrideSeconds || task.duration || 0;
-  activity = {
-    active:true,
-    taskId,
-    title: task.title || taskId,
-    duration,
-    startedAt: Date.now(),
-    paused:false,
-    elapsed:0,
-    _onFinish: typeof opts.onFinish === 'function' ? opts.onFinish : null,
-    _isPomodoro: !!opts.isPomodoro,
-    _taskMusicStarted:false,
-    _taskMusicKind:null,
-    nonBlocking: !!opts.nonBlocking
-  };
-
+// --- Предзагрузка звука оповещения (инициализация по клику «Старт») ---
+try {
+    if (!preloadedChime && AUDIO_FILES.chime) {
+        preloadedChime = new Audio(AUDIO_FILES.chime);
+        preloadedChime.preload = 'auto';
+        preloadedChime.volume = 0.95;
+        preloadedChime.load(); // разрешается браузером, так как в клике
+    }
+} catch(e){
+    console.warn('preload chime err', e);
+}
+// --- конец предзагрузки ---
   const tt = state.tasks.find(x=>x.id===taskId);
   if (tt){ tt.lastDuration = duration; saveState(); }
 
@@ -1313,6 +1310,20 @@ let backgroundTickInterval = null;
 
 function startBackgroundActivity(id, seconds, taskObj = {}, opts = {}){
   // если уже идёт — перезапускаем или возобновляем
+
+  // --- Предзагрузка звука оповещения (инициализация по клику «Старт») ---
+  try {
+    if (!preloadedChime && AUDIO_FILES.chime) {
+      preloadedChime = new Audio(AUDIO_FILES.chime);
+      preloadedChime.preload = 'auto';
+      preloadedChime.volume = 0.95;
+      preloadedChime.load();
+    }
+  } catch(e){
+    console.warn('preload chime err', e);
+  }
+  // --- конец предзагрузки ---
+
   backgroundActivity = {
     id,
     duration: Number(seconds) || 0,
@@ -1324,7 +1335,6 @@ function startBackgroundActivity(id, seconds, taskObj = {}, opts = {}){
     _musicKind: null,
     _playMusic: !!opts.playMusic
   };
-
   // старт музыки (опционально)
   if (backgroundActivity._playMusic && state?.meta?.musicChoice) {
     try { playBackground('background', state.meta.musicChoice); backgroundActivity._musicStarted = true; backgroundActivity._musicKind = 'audioElem'; }
