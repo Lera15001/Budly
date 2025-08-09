@@ -1,0 +1,1442 @@
+<!doctype html>
+<html lang="ru">
+<head><style>
+  #splash {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: #ffffff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    transition: opacity 0.5s ease;
+  }
+  #splash video {
+    max-width: 100%;
+    max-height: 100%;
+  }
+</style>
+<!-- Иконка для iPhone -->
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
+
+<!-- PWA манифест -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#16a34a">
+
+<!-- iOS PWA support -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Habit Canvas">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Habit Canvas — pomodoro+restart+music</title>>
+<style>
+  :root{
+    --bg:#eefbf1;
+    --card:#ffffff;
+    --muted:#6b7280;
+    --title:#0f172a;
+    --accent:#16a34a;
+    --soft:#f8fafc;
+    --glass:#eef2ff;
+    --danger:#fef3c7;
+    --radius:14px;
+  }
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:var(--bg);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+  .frame{display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box;height:100%}
+  .phone{width:390px;max-width:calc(100% - 24px);height:780px;border-radius:22px;overflow:hidden;box-shadow:0 14px 36px rgba(2,6,23,0.12);position:relative;background:transparent;display:flex;flex-direction:column}
+  header.app-header{padding:14px;display:flex;align-items:center;gap:12px;background:transparent}
+  .header-left{display:flex;flex-direction:column;flex:1}
+  .title{font-weight:700;font-size:18px;color:var(--title)}
+  .subtitle{font-size:13px;color:var(--muted);margin-top:4px}
+  .toggles{display:flex;gap:8px;align-items:center}
+  .toggle-btn{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--card);box-shadow:0 6px 14px rgba(2,6,23,0.06);cursor:pointer;font-size:18px;border:none}
+  main.list{flex:1;overflow:auto;padding:12px;box-sizing:border-box}
+  .task-card{display:flex;align-items:flex-start;gap:12px;background:var(--card);border-radius:var(--radius);padding:12px;box-shadow:0 6px 12px rgba(2,6,23,0.04);margin-bottom:12px}
+  .icon-bubble{width:60px;height:60px;border-radius:12px;background:#f3faf4;display:flex;align-items:center;justify-content:center;font-size:28px}
+  .task-body{flex:1;min-width:0;display:flex;flex-direction:column}
+  .task-title{font-weight:700;color:var(--title);font-size:15px;line-height:1.1}
+  .task-desc{color:var(--muted);font-size:13px;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis}
+  .task-actions{display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0}
+  .action-btn{background:var(--soft);padding:8px 12px;border-radius:10px;border:none;cursor:pointer;font-weight:600}
+  .start-btn{background:var(--accent);color:#fff;padding:10px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:700;min-width:86px}
+  footer.quick{padding:12px}
+  .quick-wrapper{background:var(--card);border-radius:var(--radius);padding:8px 12px 12px 12px;display:flex;gap:10px;justify-content:space-between}
+  .quick-item{flex:1;background:#f8fafc;border-radius:10px;padding:10px;font-weight:700;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:none}
+  .quick-item .qi-icon{font-size:20px}
+  .quick-item .qi-text{font-size:13px;color:var(--muted)}
+  /* Modal */
+  .modal-backdrop{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,0.45);z-index:50}
+  .modal{width:calc(100% - 40px);max-width:640px;border-radius:16px;background:var(--card);max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+  .modal-header{padding:18px 18px 8px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .modal-title{font-weight:700;font-size:18px;color:var(--title)}
+  .modal-body{padding:12px 18px;flex:1;overflow:auto}
+  .modal-section{margin-bottom:12px}
+  .modal-section h4{margin:0 0 6px 0;font-weight:600;color:var(--title);font-size:13px}
+  .modal-section p{margin:0;color:var(--muted);font-size:14px;line-height:1.45;white-space:pre-wrap}
+  .modal-footer{padding:14px;display:flex;flex-direction:column;gap:10px;border-top:1px solid rgba(0,0,0,0.04);background:linear-gradient(180deg,transparent,rgba(0,0,0,0.02));flex-shrink:0}
+  .controls{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .big-time{font-weight:800;font-size:40px;color:var(--title)}
+  .control-buttons{display:flex;gap:10px;align-items:center}
+  .circle-btn{width:72px;height:72px;border-radius:14px;background:#fff;border:1px solid rgba(0,0,0,0.04);display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer}
+  .primary-wide{flex:1;background:var(--accent);color:white;border-radius:12px;padding:14px;font-weight:800;cursor:pointer;border:none}
+  .secondary{background:var(--glass);padding:10px 12px;border-radius:10px;border:none;cursor:pointer;font-weight:700}
+  .muted{color:var(--muted)}
+  .music-indicator{display:inline-flex;align-items:center;gap:6px;padding:6px 8px;border-radius:999px;background:#eef2ff;color:#4338ca;font-weight:700;font-size:14px}
+  button{touch-action:manipulation}
+  textarea.journal{width:100%;min-height:220px;padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.06);font-size:15px;resize:vertical}
+  input[type="text"], textarea { font-family: inherit; }
+  .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;padding:12px}
+  .cal-day{height:44px;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;color:#065f46;position:relative;cursor:pointer;padding:4px;border:1px solid rgba(0,0,0,0.04)}
+  .cal-day .badge{position:absolute;bottom:4px;right:6px;font-size:10px;background:rgba(0,0,0,0.04);padding:2px 6px;border-radius:999px}
+  .cal-legend{display:flex;gap:8px;align-items:center;padding:8px}
+  .plan-item{display:flex;gap:8px;align-items:center;padding:8px;border-radius:8px;background:#fff;margin-bottom:8px}
+  .plan-item.done{opacity:0.6;text-decoration:line-through}
+  .small-note{font-size:12px;color:var(--muted);margin-top:6px}
+  .custom-input{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);box-sizing:border-box}
+  .books-list{display:flex;flex-direction:column;gap:8px}
+  .book-item{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;background:#fff}
+  .weekday-btn{padding:8px 10px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);background:#fff;cursor:pointer}
+  .weekday-btn.active{background:var(--accent);color:#fff}
+  .exercise-row{display:flex;align-items:center;gap:8px;padding:6px 0}
+  .small-delete{background:transparent;border:none;color:#ef4444;font-weight:700;cursor:pointer;padding:6px 8px}
+</style>
+</head>
+<body> <!-- Заставка -->
+<div id="splash">
+  <video autoplay muted playsinline id="splashVideo">
+    <source src="splash.mp4" type="video/mp4">
+  </video>
+</div>
+
+<div class="frame">
+  <div class="phone" id="appPhone">
+    <header class="app-header">
+      <div class="header-left">
+        <div class="title">Сегодня</div>
+        <div class="subtitle" id="subtitleProgress">0 из 0 выполнено</div>
+      </div>
+      <div class="toggles">
+        <button id="globalMusicBtn" class="toggle-btn" title="Включить/выключить фоновую музыку">🎵</button>
+        <button id="musicSelectBtn" class="toggle-btn" title="Выбор музыки">🎶</button>
+        <button id="soundBtn" class="toggle-btn" title="Включить/выключить звуки">🔊</button>
+        <button id="calendarBtn" class="toggle-btn" title="Календарь">📅</button>
+      </div>
+    </header>
+
+    <main class="list" id="taskList" aria-live="polite"></main>
+
+    <footer class="quick">
+      <div class="quick-wrapper" role="toolbar" aria-label="Быстрые действия">
+        <button class="quick-item" data-quick="breath"><div class="qi-icon">🌬️</div><div class="qi-text">Дыхание</div></button>
+        <button class="quick-item" data-quick="plans"><div class="qi-icon">📝</div><div class="qi-text">Планы</div></button>
+        <button class="quick-item" data-quick="pomodoro"><div class="qi-icon">⏳</div><div class="qi-text">Помодоро</div></button>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<div id="modalRoot" style="display:none;"></div>
+
+<script>
+/* ====== State ====== */
+const STORAGE_KEY = 'habit_dom_final_v4';
+const AUDIO_FILES = { calm: 'audio/calm.mp3', ocean: 'audio/ocean.mp3', forest: 'audio/forest.mp3', chime: 'audio/chime.mp3' };
+
+const defaultTasks = [
+  { id:"breath", title:"Дыхательная практика", icon:"🌬️", type:"timed", duration:120, lastDuration:null, desc:"Глубокое дыхание (4-4-4).", musicRecommended:true, repeatable:true, maxPerDay:3 },
+  { id:"workout", title:"Мини-тренировка", icon:"🏋️", type:"workout", musicRecommended:false },
+  { id:"journal", title:"Утренние страницы", icon:"✍", type:"journal", duration:0, lastDuration:null, desc:"Пиши 15–20 минут." },
+  { id:"meditation", title:"Медитация", icon:"🧘‍♂️", type:"timed", duration:600, lastDuration:null, desc:"Тихая медитация.", musicRecommended:true },
+  { id:"pomodoro", title:"Помодоро", icon:"⏳", type:"timed", duration:1500, lastDuration:null, desc:"Фокус: 25 мин, затем 5 мин перерыв.", musicRecommended:false },
+  { id:"reading", title:"Чтение", icon:"📚", type:"reading", duration:0, lastDuration:null, desc:"Добавляйте книги.", musicRecommended:true },
+  { id:"water", title:"Стакан воды", icon:"💧", type:"toggle", target:5, desc:"Гидратация.", musicRecommended:false }
+];
+
+let state = loadState();
+if (!state.tasks) state.tasks = defaultTasks.map(t=>({...t}));
+if (!state.meta) state.meta = { sound:true, globalMusic:false, taskMusic:true, musicChoice:'calm' };
+if (!state.readingBooks) state.readingBooks = [];
+if (!state.workouts) state.workouts = {};
+if (!state.breathPractices) state.breathPractices = [];
+if (!state.data) state.data = {};
+
+/* Persistence */
+function loadState(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { tasks: defaultTasks.map(t=>({...t})), data:{}, meta:{ sound:true, globalMusic:false, taskMusic:true, musicChoice:'calm' }, readingBooks:[], workouts:{}, breathPractices:[] };
+    return JSON.parse(raw);
+  } catch(e){ console.warn(e); return { tasks: defaultTasks.map(t=>({...t})), data:{}, meta:{ sound:true, globalMusic:false, taskMusic:true, musicChoice:'calm' }, readingBooks:[], workouts:{}, breathPractices:[] }; }
+}
+function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){ console.warn(e); } }
+
+/* ====== Audio system (global/task/background + single chime) ====== */
+let audioCtx = null;
+let bgAudio = { global:null, task:null };
+let padNodes = { global:null, task:null };
+let previewAudio = null;
+let singleChimeRef = null;
+
+function ensureAudioCtx(){ if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
+
+/* Background music: try HTMLAudio, fallback to pad nodes */
+function playBackground(kind, preset){
+  stopBackground(kind);
+  const src = AUDIO_FILES[preset];
+  if (src){
+    try {
+      const a = new Audio(src);
+      a.loop = true;
+      a.volume = 0.18;
+      a.play().catch(()=> startPad(kind, preset));
+      bgAudio[kind] = a;
+      return;
+    } catch(e){}
+  }
+  startPad(kind, preset);
+}
+function stopBackground(kind){
+  if (bgAudio[kind]){ try{ bgAudio[kind].pause(); bgAudio[kind].currentTime = 0; }catch(e){} bgAudio[kind] = null; }
+  stopPad(kind);
+}
+function startPad(kind,preset){
+  try {
+    if (padNodes[kind]) return;
+    const nodes = createPadForPreset(preset);
+    nodes.start();
+    padNodes[kind] = nodes;
+  } catch(e){ console.warn('pad start err', e); }
+}
+function stopPad(kind){
+  if (padNodes[kind]){ try{ padNodes[kind].stop(); }catch(e){} padNodes[kind] = null; }
+}
+function createPadForPreset(preset){
+  const ctx = ensureAudioCtx();
+  const master = ctx.createGain(); master.gain.value = 0.0001;
+  const filt = ctx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value = 700; filt.Q.value = 0.7;
+  master.connect(filt); filt.connect(ctx.destination);
+  const o1 = ctx.createOscillator(); o1.type='sine'; o1.frequency.value = 220;
+  const o2 = ctx.createOscillator(); o2.type='sine'; o2.frequency.value = 260;
+  const g1 = ctx.createGain(); g1.gain.value = 0.02;
+  const g2 = ctx.createGain(); g2.gain.value = 0.015;
+  o1.connect(g1); o2.connect(g2); g1.connect(master); g2.connect(master);
+  const lfo = ctx.createOscillator(); lfo.type='sine'; lfo.frequency.value = 0.02;
+  const lfoG = ctx.createGain(); lfoG.gain.value = 0.012;
+  lfo.connect(lfoG); lfoG.connect(g1.gain); lfoG.connect(g2.gain);
+  return {
+    ctx, o1,o2,g1,g2,lfo,master,started:false,
+    start(){ if (this.started) return; const now=this.ctx.currentTime; try{ this.o1.start(now); this.o2.start(now); this.lfo.start(now); }catch(e){} this.master.gain.cancelScheduledValues(now); this.master.gain.setValueAtTime(0.0001,now); this.master.gain.linearRampToValueAtTime(0.02, now+1.2); this.started=true; },
+    stop(){ if (!this.started) return; const now=this.ctx.currentTime; this.master.gain.cancelScheduledValues(now); this.master.gain.linearRampToValueAtTime(0.0001, now+0.6); setTimeout(()=>{ try{ this.o1.stop(); this.o2.stop(); this.lfo.stop(); }catch(e){} this.started=false; }, 700); },
+    setVolume(v){ const now=this.ctx.currentTime; this.master.gain.cancelScheduledValues(now); this.master.gain.linearRampToValueAtTime(Math.max(0.0001,v), now+0.2); }
+  };
+}
+
+/* Preview music (used in selector) */
+function playPreview(preset){
+  stopPreview();
+  const src = AUDIO_FILES[preset];
+  if (!src){ startPad('preview', preset); return; }
+  try {
+    const a = new Audio(src);
+    a.volume = 0.22;
+    a.loop = true;
+    a.play().catch(()=> startPad('preview', preset));
+    previewAudio = a;
+  } catch(e){ startPad('preview', preset); }
+}
+function stopPreview(){
+  if (previewAudio){ try{ previewAudio.pause(); previewAudio.currentTime = 0; }catch(e){} previewAudio = null; }
+  stopPad('preview');
+}
+
+/* Single chime - ensure only one plays */
+function playSingleChime(){
+  if (!state.meta.sound) return;
+  // stop any preview/background short sounds (do not kill bgAudio)
+  // play audio file if present, else play oscillator
+  if (singleChimeRef && singleChimeRef instanceof HTMLAudioElement){
+    try { singleChimeRef.pause(); singleChimeRef.currentTime = 0; } catch(e) {}
+    singleChimeRef = null;
+  }
+  const src = AUDIO_FILES.chime;
+  if (src){
+    try {
+      const a = new Audio(src);
+      a.volume = 0.95;
+      singleChimeRef = a;
+      a.play().catch(()=> { singleChimeRef = null; playChimeOsc(); } );
+      a.onended = ()=> { if (singleChimeRef === a) singleChimeRef = null; };
+      return;
+    } catch(e){}
+  }
+  playChimeOsc();
+}
+function playChimeOsc(){
+  try {
+    const ctx = ensureAudioCtx();
+    const now = ctx.currentTime;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, now); g.connect(ctx.destination);
+    const o = ctx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(880, now);
+    o.connect(g);
+    g.gain.exponentialRampToValueAtTime(0.6, now + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 1.1);
+    o.start(now); o.stop(now + 1.05);
+  } catch(e){ console.warn('playChimeOsc', e); }
+}
+
+/* ====== Small helpers ====== */
+function todayKey(){ return new Date().toISOString().slice(0,10); }
+function ensureDayData(day){ state.data[day] = state.data[day] || { completed:{}, journals:{}, journalsHistory:[], glasses:0, plans:[] }; return state.data[day]; }
+
+/* ====== UI rendering & interactions ====== */
+const taskListEl = document.getElementById('taskList');
+const subtitleEl = document.getElementById('subtitleProgress');
+const modalRoot = document.getElementById('modalRoot');
+const globalMusicBtn = document.getElementById('globalMusicBtn');
+const musicSelectBtn = document.getElementById('musicSelectBtn');
+const soundBtn = document.getElementById('soundBtn');
+const calendarBtn = document.getElementById('calendarBtn');
+
+function calcProgress(dayKey = todayKey()){
+  const data = state.data[dayKey] || { completed:{} };
+  let done=0,total=0;
+  state.tasks.forEach(t=>{
+    if (t.type==='toggle'){ total += t.target||1; done += Math.min(data.completed?.[t.id]||0, t.target||1); }
+    else if (t.repeatable){ const max = t.maxPerDay || 1; total += max; done += Math.min(data.completed?.[t.id]||0, max); }
+    else { total += 1; done += data.completed?.[t.id] ? 1 : 0; }
+  });
+  return {done,total,percent: total ? Math.round((done/total)*100):0};
+}
+
+/* render tasks and add "Начать заново" for completed tasks */
+function renderTasks(){
+  const day = todayKey(); ensureDayData(day);
+  taskListEl.innerHTML = '';
+  state.tasks.forEach(t=>{
+    const card = document.createElement('div'); card.className='task-card';
+    const left = document.createElement('div'); left.className='icon-bubble'; left.textContent=t.icon;
+    const body = document.createElement('div'); body.className='task-body';
+    const title = document.createElement('div'); title.className='task-title'; title.textContent=t.title;
+    const desc = document.createElement('div'); desc.className='task-desc'; desc.textContent=t.desc || '';
+    body.appendChild(title); body.appendChild(desc);
+
+    const actions = document.createElement('div'); actions.className='task-actions';
+    const dayData = state.data[day];
+
+    if (t.type === 'toggle'){
+      const count = document.createElement('div'); count.style.fontWeight=700; count.style.color='#10b981'; count.textContent = (dayData.completed?.[t.id]||0) + '/' + (t.target||1);
+      const addBtn = document.createElement('button'); addBtn.className='action-btn'; addBtn.textContent='Добавить'; addBtn.addEventListener('click', ()=>{ addWaterNow(t.id); renderTasks(); });
+      const setBtn = document.createElement('button'); setBtn.className='action-btn'; setBtn.textContent='Цель'; setBtn.addEventListener('click', ()=> showModalForTask(t));
+      actions.appendChild(count); actions.appendChild(addBtn); actions.appendChild(setBtn);
+    } else if (t.type === 'reading'){
+      const booksCount = state.readingBooks.length;
+      const info = document.createElement('div'); info.style.fontWeight='700'; info.style.color='#0f172a'; info.textContent = `${booksCount} книг`;
+      const openBtn = document.createElement('button'); openBtn.className='start-btn'; openBtn.textContent='Открыть'; openBtn.addEventListener('click', ()=> showModalForTask(t));
+      actions.appendChild(info); actions.appendChild(openBtn);
+    } else if (t.type === 'workout'){
+      const openBtn = document.createElement('button'); openBtn.className='start-btn'; openBtn.textContent='Открыть'; openBtn.addEventListener('click', ()=> showModalForTask(t));
+      actions.appendChild(openBtn);
+    } else if (t.repeatable){
+      const val = dayData.completed?.[t.id] || 0;
+      const count = document.createElement('div'); count.style.fontWeight=700; count.style.color='#0f172a'; count.textContent = `${val}/${t.maxPerDay||'∞'}`;
+      const startBtn = document.createElement('button'); startBtn.className='start-btn'; startBtn.textContent='Начать'; startBtn.addEventListener('click', ()=> startOrOpen(t));
+      actions.appendChild(count); actions.appendChild(startBtn);
+    } else {
+      const done = dayData.completed?.[t.id];
+      if (done){
+        const tick = document.createElement('div'); tick.style.width='44px'; tick.style.height='44px'; tick.style.borderRadius='22px'; tick.style.background='#34d399'; tick.style.display='flex'; tick.style.alignItems='center'; tick.style.justifyContent='center'; tick.style.color='#fff'; tick.textContent='✓';
+        actions.appendChild(tick);
+        // Add restart button for completed tasks (user requested)
+        const restartBtn = document.createElement('button'); restartBtn.className='action-btn'; restartBtn.textContent='Начать заново';
+        restartBtn.addEventListener('click', ()=> restartTask(t));
+        actions.appendChild(restartBtn);
+      } else {
+        const start = document.createElement('button'); start.className='start-btn'; start.textContent='Начать'; start.addEventListener('click', ()=> startOrOpen(t));
+        actions.appendChild(start);
+      }
+    }
+
+    card.appendChild(left); card.appendChild(body); card.appendChild(actions);
+    taskListEl.appendChild(card);
+  });
+
+  const prog = calcProgress(); subtitleEl.textContent = `${prog.done} из ${prog.total} выполнено`;
+}
+
+/* start or open modal depending on task type */
+function startOrOpen(task){
+  if (task.type === 'timed'){
+    // open simple start dialog so user can set minutes
+    showModalForTask(task);
+  } else {
+    showModalForTask(task);
+  }
+}
+
+/* Restart a completed task (user requested) */
+function restartTask(task){
+  const day = todayKey(); ensureDayData(day);
+  // If non-repeatable, clear completion to let it be completed again
+  const t = task;
+  if (!t.repeatable && t.type !== 'toggle'){
+    if (state.data[day].completed && state.data[day].completed[t.id]) delete state.data[day].completed[t.id];
+    saveState();
+  }
+  // For timed tasks start immediately with lastDuration if present else default
+  if (t.type === 'timed'){
+    const secs = Math.max(60, t.lastDuration || t.duration || 60);
+    startActivity(t.id, secs, t, { isPomodoro: t.id === 'pomodoro' });
+  } else if (t.type === 'reading'){
+    showModalForTask(t);
+  } else {
+    showModalForTask(t);
+  }
+}
+
+/* ====== Modal management ====== */
+function hideModal(){ modalRoot.innerHTML=''; modalRoot.style.display='none'; }
+function createBackdrop(){ const bd = document.createElement('div'); bd.className='modal-backdrop'; return bd; }
+
+/* Open music selector (user requested) */
+function openMusicSelector(){
+  modalRoot.innerHTML=''; modalRoot.style.display='block';
+  const backdrop = createBackdrop();
+  const modal = document.createElement('div'); modal.className='modal';
+  const header = document.createElement('div'); header.className='modal-header';
+  const title = document.createElement('div'); title.className='modal-title'; title.textContent = 'Выбор фоновой музыки';
+  const closeBtn = document.createElement('button'); closeBtn.className='small-delete'; closeBtn.textContent='✕'; closeBtn.addEventListener('click', ()=>{ stopPreview(); hideModal(); });
+  header.appendChild(title); header.appendChild(closeBtn);
+
+  const body = document.createElement('div'); body.className='modal-body';
+  const opts = [['calm','Calm — спокойный пад'], ['ocean','Ocean — шум волны'], ['forest','Forest — мягкий лес']];
+  const selDiv = document.createElement('div'); selDiv.className='modal-section';
+  const select = document.createElement('select'); select.className='custom-input';
+  opts.forEach(([v,label])=>{ const o = document.createElement('option'); o.value=v; o.textContent = label; if (state.meta.musicChoice === v) o.selected = true; select.appendChild(o); });
+  selDiv.appendChild(select);
+  body.appendChild(selDiv);
+
+  const previewRow = document.createElement('div'); previewRow.className='modal-section';
+  const previewBtn = document.createElement('button'); previewBtn.className='secondary'; previewBtn.textContent='Прослушать'; let previewing = false;
+  previewBtn.addEventListener('click', ()=>{
+    if (!previewing){ playPreview(select.value); previewBtn.textContent = 'Остановить'; previewing = true; }
+    else { stopPreview(); previewBtn.textContent = 'Прослушать'; previewing = false; }
+  });
+  previewRow.appendChild(previewBtn);
+  body.appendChild(previewRow);
+
+  const footer = document.createElement('div'); footer.className='modal-footer';
+  const saveBtn = document.createElement('button'); saveBtn.className='primary-wide'; saveBtn.textContent='Сохранить';
+  saveBtn.addEventListener('click', ()=>{
+    stopPreview();
+    const newChoice = select.value; state.meta.musicChoice = newChoice; saveState();
+    // restart background music to apply new preset
+    if (state.meta.globalMusic){ stopBackground('global'); playBackground('global', newChoice); }
+    // if task music is playing, update it too
+    if (bgAudio.task || padNodes.task){ stopBackground('task'); playBackground('task', newChoice); }
+    hideModal();
+  });
+  footer.appendChild(saveBtn);
+  modal.appendChild(header); modal.appendChild(body); modal.appendChild(footer); backdrop.appendChild(modal); modalRoot.appendChild(backdrop);
+}
+
+/* Show task-specific modal (breath/workout/reading/journal/water/timed) */
+function showModalForTask(task){
+  modalRoot.innerHTML=''; modalRoot.style.display='block';
+  const backdrop = createBackdrop();
+  const modal = document.createElement('div'); modal.className='modal';
+  const header = document.createElement('div'); header.className='modal-header';
+  const title = document.createElement('div'); title.className='modal-title'; title.textContent = task.title;
+  const closeBtn = document.createElement('button'); closeBtn.className='small-delete'; closeBtn.textContent='✕'; closeBtn.addEventListener('click', ()=> hideModal());
+  header.appendChild(title); header.appendChild(closeBtn);
+
+  const body = document.createElement('div'); body.className='modal-body';
+
+  /* BREATH modal */
+  if (task.id === 'breath'){
+    const presets = [
+      { key:'box', name:'Квадратное', desc:'Вдох 4 — задержка 4 — выдох 4 — задержка 4', dur:60 },
+      { key:'478', name:'4-7-8', desc:'Вдох 4 — задержка 7 — выдох 8', dur:60 },
+      { key:'deep', name:'Глубокое', desc:'Медленный вдох через нос, медленный выдох через рот', dur:90 }
+    ];
+    const s = document.createElement('div'); s.className='modal-section';
+    const h = document.createElement('h4'); h.textContent='Выберите практику'; s.appendChild(h);
+    const listDiv = document.createElement('div');
+    const renderPractices = ()=>{
+      listDiv.innerHTML = '';
+      const all = presets.concat(state.breathPractices.map((p,i)=> ({ key:'custom'+i, name:p.name, desc:p.desc, dur:p.dur, _idx:i })));
+      all.forEach(p=>{
+        const row = document.createElement('div'); row.style.display='flex'; row.style.flexDirection='column'; row.style.marginBottom='8px';
+        const top = document.createElement('div'); top.style.display='flex'; top.style.alignItems='center'; top.style.justifyContent='space-between';
+        const left = document.createElement('div'); left.style.display='flex'; left.style.alignItems='center'; left.style.gap='8px';
+        const radio = document.createElement('input'); radio.type='radio'; radio.name='breath_practice'; radio.value = JSON.stringify(p);
+        left.appendChild(radio);
+        const label = document.createElement('div'); label.style.fontWeight='700'; label.textContent = p.name + (p.dur ? ` — ${Math.round(p.dur/60)} мин` : '');
+        left.appendChild(label);
+        top.appendChild(left);
+        if (p.key && p.key.startsWith('custom')){
+          const del = document.createElement('button'); del.className='small-delete'; del.textContent='Удалить'; del.addEventListener('click', (ev)=>{ ev.stopPropagation(); if (confirm('Удалить практику?')){ state.breathPractices.splice(p._idx,1); saveState(); renderPractices(); }});
+          top.appendChild(del);
+        }
+        row.appendChild(top);
+        const desc = document.createElement('div'); desc.className='small-note'; desc.textContent = p.desc || ''; row.appendChild(desc);
+        listDiv.appendChild(row);
+      });
+    };
+    renderPractices();
+    s.appendChild(listDiv);
+    body.appendChild(s);
+
+    const addRow = document.createElement('div'); addRow.style.display='flex'; addRow.style.flexDirection='column'; addRow.style.gap='8px';
+    const inpName = document.createElement('input'); inpName.className='custom-input'; inpName.placeholder='Название практики';
+    const inpDesc = document.createElement('input'); inpDesc.className='custom-input'; inpDesc.placeholder='Описание';
+    const inpDur = document.createElement('input'); inpDur.type='number'; inpDur.className='custom-input'; inpDur.value=60; inpDur.min=10; inpDur.placeholder='Длительность в сек.';
+    const addBtn = document.createElement('button'); addBtn.className='primary-wide'; addBtn.textContent='Добавить практику';
+    addBtn.addEventListener('click', ()=>{ const name=inpName.value.trim(); if(!name) return alert('Введите название'); const desc=inpDesc.value.trim(); const dur=Math.max(10, Number(inpDur.value)||60); state.breathPractices.push({ name, desc, dur }); saveState(); inpName.value=''; inpDesc.value=''; inpDur.value=60; renderPractices(); });
+    addRow.appendChild(inpName); addRow.appendChild(inpDesc); addRow.appendChild(inpDur); addRow.appendChild(addBtn);
+    body.appendChild(addRow);
+
+    const controls = document.createElement('div'); controls.className='modal-section';
+    const markBtn = document.createElement('button'); markBtn.className='secondary'; markBtn.textContent='Отметить выполнение'; markBtn.addEventListener('click', ()=>{ const day=todayKey(); ensureDayData(day); const tt=state.tasks.find(x=>x.id==='breath'); state.data[day].completed['breath'] = Math.min((state.data[day].completed['breath']||0)+1, tt.maxPerDay||1); saveState(); renderTasks(); alert('Отмечено'); });
+    const startBtn = document.createElement('button'); startBtn.className='primary-wide'; startBtn.textContent='Запустить выбранную практику';
+    startBtn.addEventListener('click', ()=>{ const sel = document.querySelector('input[name="breath_practice"]:checked'); if (!sel) return alert('Выберите практику'); const p = JSON.parse(sel.value); startActivity('breath', p.dur || 60, task, {}); hideModal(); });
+    controls.appendChild(markBtn); controls.appendChild(startBtn);
+    body.appendChild(controls);
+
+    modal.appendChild(header); modal.appendChild(body); backdrop.appendChild(modal); modalRoot.appendChild(backdrop);
+    return;
+  }
+
+  /* WORKOUT modal */
+/* WORKOUT modal */
+if (task.type === 'workout' || task.id === 'workout'){
+  const days = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+  let selDay = (new Date()).getDay(); selDay = (selDay + 6) % 7;
+  const headerWrap = document.createElement('div'); headerWrap.style.display='flex'; headerWrap.style.gap='6px'; headerWrap.style.flexWrap='wrap'; headerWrap.style.marginBottom='8px';
+  const dayBtns = [];
+  days.forEach((d,i)=>{ const btn=document.createElement('button'); btn.className='weekday-btn'; if (i===selDay) btn.classList.add('active'); btn.textContent=d; btn.addEventListener('click', ()=>{ dayBtns.forEach(b=>b.classList.remove('active')); btn.classList.add('active'); selDay=i; renderExercises(); }); dayBtns.push(btn); headerWrap.appendChild(btn); });
+  body.appendChild(headerWrap);
+
+  const addRow = document.createElement('div'); addRow.style.display='flex'; addRow.style.gap='8px'; addRow.style.marginBottom='10px';
+  const addInput = document.createElement('input'); addInput.className='custom-input'; addInput.placeholder='Новое упражнение';
+  const addBtn = document.createElement('button'); addBtn.className='primary-wide'; addBtn.textContent='Добавить'; addBtn.addEventListener('click', ()=>{ if (!addInput.value.trim()) return; addWorkoutExercise(selDay, addInput.value.trim()); addInput.value=''; renderExercises(); });
+  addRow.appendChild(addInput); addRow.appendChild(addBtn); body.appendChild(addRow);
+
+  // Общий (фоновой) таймер тренировки
+  const overallSection = document.createElement('div'); overallSection.className='modal-section';
+  const hOverall = document.createElement('h4'); hOverall.textContent='Таймер тренировки (минуты)';
+  overallSection.appendChild(hOverall);
+  const overallRow = document.createElement('div'); overallRow.style.display='flex'; overallRow.style.gap='8px'; overallRow.style.alignItems='center';
+  const overallInput = document.createElement('input'); overallInput.type='number'; overallInput.min=1; overallInput.value=10; overallInput.className='custom-input'; overallInput.style.width='120px';
+
+  const musicLabel = document.createElement('label'); musicLabel.style.display='flex'; musicLabel.style.alignItems='center'; musicLabel.style.gap='8px';
+  const overallMusicChk = document.createElement('input'); overallMusicChk.type='checkbox';
+  const overallMusicText = document.createElement('div'); overallMusicText.textContent = 'Фоновая музыка';
+  musicLabel.appendChild(overallMusicChk); musicLabel.appendChild(overallMusicText);
+
+const overallStart = document.createElement('button');
+overallStart.className='secondary';
+overallStart.textContent='Запустить общий таймер';
+overallStart.addEventListener('click', ()=>{
+  const mins = Math.max(1, Math.round(Number(overallInput.value) || 10));
+  const secs = mins * 60;
+  const playMusic = !!overallMusicChk.checked;
+
+  startBackgroundActivity('workout', secs, { id:'workout', title:'Тренировка' }, {
+    onFinish: ()=>{
+      const day = todayKey();
+      ensureDayData(day);
+      state.data[day].completed['workout'] = true;
+      saveState();
+      renderTasks();
+    },
+    playMusic: playMusic
+  });
+});
+
+// добавляем input и кнопку в ряд (обрати внимание — кнопка «Остановить общий таймер» убрана)
+overallRow.appendChild(overallInput);
+overallRow.appendChild(overallStart);
+overallRow.appendChild(musicLabel);
+overallSection.appendChild(overallRow);
+body.appendChild(overallSection);
+  // Список упражнений
+  const listArea = document.createElement('div'); listArea.style.marginBottom='8px';
+  function renderExercises(){
+    listArea.innerHTML='';
+    const arr = state.workouts[selDay] || [];
+    if (!arr.length){ const em=document.createElement('div'); em.className='small-note'; em.textContent='Список пуст.'; listArea.appendChild(em); return; }
+    arr.forEach((ex,i)=>{
+      const row=document.createElement('div'); row.className='exercise-row';
+      const cb=document.createElement('input'); cb.type='checkbox'; cb.checked = !!ex.done;
+      cb.addEventListener('change', ()=>{ toggleWorkoutExercise(selDay,i); renderExercises(); });
+      const txt=document.createElement('div'); txt.style.flex='1'; txt.textContent = ex.text;
+
+      const secondsInput = document.createElement('input');
+      secondsInput.type = 'number';
+      secondsInput.min = 1;
+      secondsInput.value = 30;
+      secondsInput.style.width = '72px';
+      secondsInput.className = 'custom-input';
+      secondsInput.placeholder = 'сек.';
+
+      const startBtn = document.createElement('button'); startBtn.className='action-btn'; startBtn.textContent='Таймер';
+startBtn.addEventListener('click', ()=>{
+    let s = Math.max(15, Math.round(Number(secondsInput.value) || 0));
+    s = Math.max(15, Math.round(s / 15) * 15);
+    startActivity(`workout-item:${selDay}:${i}`, s, { id:'workout', title:'Упражнение: '+ex.text }, {
+      onFinish: ()=>{
+        toggleWorkoutExercise(selDay,i);
+        renderExercises();
+      },
+      nonBlocking: true
+    });
+    // hideModal(); // убрали, чтобы модал не закрывался
+});
+      const del=document.createElement('button'); del.className='action-btn'; del.textContent='Удалить';
+      del.addEventListener('click', ()=>{ if (confirm('Удалить упражнение?')){ deleteWorkoutExercise(selDay,i); renderExercises(); } });
+
+      row.appendChild(cb); row.appendChild(txt); row.appendChild(secondsInput); row.appendChild(startBtn); row.appendChild(del);
+      listArea.appendChild(row);
+    });
+  }
+  body.appendChild(listArea);
+
+  const resetRow=document.createElement('div'); resetRow.style.display='flex'; resetRow.style.gap='8px';
+  const resetBtn=document.createElement('button'); resetBtn.className='secondary'; resetBtn.textContent='Сбросить галочки';
+  resetBtn.addEventListener('click', ()=>{ if(confirm('Сбросить все отметки?')){ resetWorkoutDay(selDay); renderExercises(); }});
+  const closeBtn2=document.createElement('button'); closeBtn2.className='primary-wide'; closeBtn2.textContent='Готово'; closeBtn2.addEventListener('click', ()=> hideModal());
+  resetRow.appendChild(resetBtn); resetRow.appendChild(closeBtn2);
+
+  modal.appendChild(header); modal.appendChild(body); modal.appendChild(resetRow); backdrop.appendChild(modal); modalRoot.appendChild(backdrop);
+  renderExercises();
+  return;
+}
+  /* READING modal */
+  if (task.type === 'reading'){
+    const sRead = document.createElement('div'); sRead.className='modal-section';
+    const hR = document.createElement('h4'); hR.textContent = 'Мои книги';
+    const addRow = document.createElement('div'); addRow.style.display='flex'; addRow.style.gap='8px'; addRow.style.marginBottom='8px';
+    const textIn = document.createElement('input'); textIn.placeholder='Название — Автор'; textIn.className='custom-input';
+    const addBtn = document.createElement('button'); addBtn.className='primary-wide'; addBtn.textContent='Добавить'; addBtn.addEventListener('click', ()=>{ if (textIn.value.trim()){ state.readingBooks.push({id:Date.now().toString(), text:textIn.value.trim(), read:false}); saveState(); textIn.value=''; renderReadingList(container); }});
+    addRow.appendChild(textIn); addRow.appendChild(addBtn); sRead.appendChild(hR); sRead.appendChild(addRow);
+
+    const container = document.createElement('div'); container.className='books-list';
+    function renderReadingList(root){ root.innerHTML=''; if (!state.readingBooks || state.readingBooks.length===0){ const em=document.createElement('div'); em.className='small-note'; em.textContent='Список пуст.'; root.appendChild(em); return; } state.readingBooks.forEach((b,idx)=>{ const item=document.createElement('div'); item.className='book-item'; const left=document.createElement('div'); left.style.display='flex'; left.style.alignItems='center'; left.style.gap='12px'; const textDiv=document.createElement('div'); textDiv.style.fontWeight='700'; textDiv.textContent=b.text; left.appendChild(textDiv); const right=document.createElement('div'); right.style.display='flex'; right.style.gap='8px'; right.style.alignItems='center'; // Ввод времени в секундах с шагом 15
+const secondsInput = document.createElement('input');
+secondsInput.type = 'number';
+secondsInput.min = 15;
+secondsInput.step = 15;
+secondsInput.value = 30;
+secondsInput.style.width = '72px';
+secondsInput.className = 'custom-input';
+secondsInput.placeholder = 'сек.';
+
+// Кнопка запуска таймера
+const startBtn = document.createElement('button');
+startBtn.className = 'action-btn';
+startBtn.textContent = 'Таймер';
+startBtn.addEventListener('click', ()=>{
+  let s = Math.max(15, Math.round(Number(secondsInput.value) || 0));
+  s = Math.max(15, Math.round(s / 15) * 15);
+  startActivity('reading:'+b.id, s, { id:'reading', title:'Чтение: '+b.text }, {
+    nonBlocking: true // таймер фоновый, модал не закрывается
+  });
+  // hideModal() НЕ вызываем
+});
+
+// Чекбокс
+const chk = document.createElement('input');
+chk.type = 'checkbox';
+chk.checked = !!b.read;
+chk.addEventListener('change', ()=>{
+  state.readingBooks[idx].read = chk.checked;
+  saveState();
+  renderReadingList(root);
+});
+
+// Кнопка удаления
+const del = document.createElement('button');
+del.textContent = '×';
+del.addEventListener('click', ()=>{
+  state.readingBooks.splice(idx,1);
+  saveState();
+  renderReadingList(root);
+});
+
+right.appendChild(secondsInput);
+right.appendChild(startBtn);
+right.appendChild(chk);
+right.appendChild(del);
+item.appendChild(left);
+item.appendChild(right);
+root.appendChild(item);}); }
+    renderReadingList(container);
+    sRead.appendChild(container);
+    modal.appendChild(header); modal.appendChild(body); body.appendChild(sRead); backdrop.appendChild(modal); modalRoot.appendChild(backdrop);
+    return;
+  }
+
+  /* JOURNAL modal */
+/* JOURNAL modal */
+  if (task.type === 'journal'){
+    const day = todayKey(); ensureDayData(day);
+
+    // секция с текстом "Утренние страницы"
+    const sJ = document.createElement('div'); sJ.className='modal-section';
+    const hJ = document.createElement('h4'); hJ.textContent='Утренние страницы';
+    const journalTextarea = document.createElement('textarea');
+    journalTextarea.placeholder='Пиши, что приходит в голову, без цензуры и редактуры. Цель — очистить мысли и запустить креативность. (~15–20 минут)';
+    journalTextarea.style.width = '100%';
+    journalTextarea.style.minHeight = '140px';
+    // подставим черновик, если есть
+    const draft = (state.data[day].journals && state.data[day].journals[task.id]) ? state.data[day].journals[task.id] : '';
+    journalTextarea.value = draft;
+    const savedNote = document.createElement('div'); savedNote.className='small-note';
+    savedNote.textContent = draft ? 'Есть черновик.' : 'Поле пусто.';
+    // автосохранение черновика в state.data[day].journals[task.id]
+    journalTextarea.addEventListener('input', ()=>{
+      ensureDayData(day);
+      state.data[day].journals = state.data[day].journals || {};
+      state.data[day].journals[task.id] = journalTextarea.value;
+      saveState();
+      savedNote.textContent = 'Черновик сохранён.';
+    });
+    sJ.appendChild(hJ); sJ.appendChild(journalTextarea); sJ.appendChild(savedNote);
+    body.appendChild(sJ);
+
+    // --- НОВО: блок фонового таймера для Утренних страниц ---
+    const timerSection = document.createElement('div'); timerSection.className='modal-section';
+    const tH = document.createElement('h4'); tH.textContent = 'Фоновый таймер';
+    timerSection.appendChild(tH);
+
+    const timerRow = document.createElement('div');
+    timerRow.style.display = 'flex';
+    timerRow.style.alignItems = 'center';
+    timerRow.style.gap = '8px';
+
+    // input для минут (по умолчанию 20)
+    const morningTimerInput = document.createElement('input');
+    morningTimerInput.type = 'number';
+    morningTimerInput.min = 1;
+    morningTimerInput.value = 20;
+    morningTimerInput.className = 'custom-input';
+    morningTimerInput.style.width = '70px';
+    timerRow.appendChild(morningTimerInput);
+
+    // чекбокс музыки
+    const morningMusicChk = document.createElement('input');
+    morningMusicChk.type = 'checkbox';
+    morningMusicChk.id = 'morningMusicChk';
+    // по умолчанию можно подставить глобальные настройки (если есть)
+    morningMusicChk.checked = !!(state.meta && state.meta.taskMusic);
+    const morningMusicLbl = document.createElement('label');
+    morningMusicLbl.htmlFor = 'morningMusicChk';
+    morningMusicLbl.textContent = 'Фоновая музыка';
+    morningMusicLbl.style.marginLeft = '6px';
+
+    // кнопка старта фонового таймера
+    const startMorningTimerBtn = document.createElement('button');
+    startMorningTimerBtn.className = 'primary';
+    startMorningTimerBtn.textContent = 'Старт таймера';
+    startMorningTimerBtn.addEventListener('click', ()=>{
+      const mins = Math.max(1, Math.round(Number(morningTimerInput.value) || 20));
+      const secs = mins * 60;
+      const playMusic = !!morningMusicChk.checked;
+
+      startBackgroundActivity('morning-pages', secs, { id: 'morning-pages', title: 'Утренние страницы' }, {
+        onFinish: ()=>{
+          const d = todayKey();
+          ensureDayData(d);
+          state.data[d].completed['morning-pages'] = true;
+          saveState();
+          renderTasks();
+        },
+        playMusic: playMusic
+      });
+    });
+
+    timerRow.appendChild(startMorningTimerBtn);
+    timerRow.appendChild(morningMusicChk);
+    timerRow.appendChild(morningMusicLbl);
+    timerSection.appendChild(timerRow);
+    body.appendChild(timerSection);
+    // --- конец блока фонового таймера ---
+
+    // История (как ранее, сохраняем записи в state.data[day].journalsHistory)
+    const sHist = document.createElement('div'); sHist.className='modal-section';
+    const hH = document.createElement('h4'); hH.textContent='История';
+    sHist.appendChild(hH);
+
+    const histWrapper = document.createElement('div');
+    histWrapper.style.display = 'flex';
+    histWrapper.style.flexDirection = 'column';
+    histWrapper.style.gap = '8px';
+
+    // Собираем дни, где есть journalsHistory
+    const days = Object.keys(state.data || {}).filter(k=>{
+      return Array.isArray(state.data[k].journalsHistory) && state.data[k].journalsHistory.length > 0;
+    }).sort((a,b)=> b.localeCompare(a));
+
+    if (days.length === 0){
+      const em = document.createElement('div'); em.className='small-note'; em.textContent = 'История пустая.'; histWrapper.appendChild(em);
+    } else {
+      days.forEach(d=>{
+        const box = document.createElement('div');
+        box.className = 'history-day';
+        const dateLabel = document.createElement('div'); dateLabel.className='small-note'; dateLabel.textContent = d;
+        box.appendChild(dateLabel);
+
+        const list = document.createElement('div');
+        (state.data[d].journalsHistory || []).forEach(entry=>{
+          const row = document.createElement('div');
+          row.className = 'history-item';
+          const when = new Date(entry.time).toLocaleString();
+          const short = (entry.text || '').slice(0, 200).replace(/\n/g, ' ');
+          row.textContent = `${when} — ${short}`;
+          list.appendChild(row);
+        });
+        box.appendChild(list);
+        histWrapper.appendChild(box);
+      });
+    }
+
+    sHist.appendChild(histWrapper);
+    body.appendChild(sHist);
+
+    // Footer: Сохранить в историю / Очистить историю
+    const footerJ = document.createElement('div'); footerJ.className='modal-footer';
+    const saveBtn = document.createElement('button'); saveBtn.className='primary-wide'; saveBtn.textContent='Сохранить в историю';
+    saveBtn.addEventListener('click', ()=>{
+      const dayk = todayKey();
+      ensureDayData(dayk);
+      const text = (journalTextarea.value || '').trim();
+      if (!text) { return alert('Нельзя сохранить пустой текст.'); }
+      state.data[dayk].journalsHistory = state.data[dayk].journalsHistory || [];
+      state.data[dayk].journalsHistory.push({ time: Date.now(), text });
+      // очистим черновик
+      state.data[dayk].journals = state.data[dayk].journals || {};
+      state.data[dayk].journals[task.id] = '';
+      journalTextarea.value = '';
+      saveState();
+      hideModal();
+    });
+
+    const clearBtn = document.createElement('button'); clearBtn.className='secondary'; clearBtn.textContent='Очистить историю';
+    clearBtn.addEventListener('click', ()=>{
+      if (!confirm('Очистить всю историю "Утренние страницы"?')) return;
+      Object.keys(state.data || {}).forEach(k=>{
+        if (Array.isArray(state.data[k].journalsHistory)) state.data[k].journalsHistory = [];
+      });
+      saveState();
+      renderTasks();
+      hideModal();
+    });
+
+    footerJ.appendChild(saveBtn); footerJ.appendChild(clearBtn);
+    modal.appendChild(header); modal.appendChild(body); modal.appendChild(footerJ); backdrop.appendChild(modal); modalRoot.appendChild(backdrop);
+    return;
+  }
+  /* WATER modal */
+  if (task.id === 'water'){
+    const sRec = document.createElement('div'); sRec.className='modal-section';
+    const hRec = document.createElement('h4'); hRec.textContent='Цель (стаканы)';
+    const inputRow = document.createElement('div'); inputRow.style.display='flex'; inputRow.style.gap='8px';
+    const targetInput = document.createElement('input'); targetInput.type='number'; targetInput.min=1; targetInput.value = task.target || 5; targetInput.className='custom-input';
+    const saveBtn = document.createElement('button'); saveBtn.className='primary-wide'; saveBtn.textContent='Сохранить цель';
+    saveBtn.addEventListener('click', ()=>{ task.target = Math.max(1, Number(targetInput.value) || 5); saveState(); hideModal(); renderTasks(); });
+    inputRow.appendChild(targetInput); inputRow.appendChild(saveBtn); sRec.appendChild(hRec); sRec.appendChild(inputRow); body.appendChild(sRec);
+
+    const sNow = document.createElement('div'); sNow.className='modal-section';
+    const drinkNow = document.createElement('button'); drinkNow.className='secondary'; drinkNow.textContent='Выпить стакан сейчас'; drinkNow.addEventListener('click', ()=>{ addWaterNow(task.id); renderTasks(); });
+    sNow.appendChild(drinkNow); body.appendChild(sNow);
+
+    modal.appendChild(header); modal.appendChild(body); backdrop.appendChild(modal); modalRoot.appendChild(backdrop);
+    return;
+  }
+
+  /* GENERIC timed tasks (pomodoro & meditation restored) */
+  if (task.type === 'timed'){
+    const sDur = document.createElement('div'); sDur.className='modal-section';
+    const hDur = document.createElement('h4'); hDur.textContent='Таймер (минуты)';
+    sDur.appendChild(hDur);
+    const durRow = document.createElement('div'); durRow.style.display='flex'; durRow.style.gap='8px'; durRow.style.alignItems='center';
+    const durInput = document.createElement('input'); durInput.type='number'; durInput.min=1;
+    const defaultMin = task.lastDuration ? Math.max(1, Math.round(task.lastDuration/60)) : Math.max(1, Math.round((task.duration||60)/60));
+    durInput.value = defaultMin; durInput.className='custom-input'; durInput.style.width='120px';
+    const startBtn = document.createElement('button'); startBtn.className='primary-wide'; startBtn.textContent='Запустить таймер';
+    startBtn.addEventListener('click', ()=>{ const mins = Math.max(1, Math.round(Number(durInput.value) || defaultMin)); const secs=Math.max(60, mins*60); startActivity(task.id, secs, task, { isPomodoro: task.id === 'pomodoro' }); hideModal(); });
+    durRow.appendChild(durInput); durRow.appendChild(startBtn); sDur.appendChild(durRow); body.appendChild(sDur);
+
+    const sNote = document.createElement('div'); sNote.className='modal-section'; const noteText = document.createElement('p'); noteText.textContent = task.desc || ''; sNote.appendChild(noteText); body.appendChild(sNote);
+
+    modal.appendChild(header); modal.appendChild(body); backdrop.appendChild(modal); modalRoot.appendChild(backdrop);
+    return;
+  }
+
+  // fallback
+  modal.appendChild(header); modal.appendChild(body); backdrop.appendChild(modal); modalRoot.appendChild(backdrop);
+}
+
+/* ====== Activity/timers system ====== */
+let activity = { active:false };
+let tickInterval = null;
+
+/*
+ startActivity(taskId, overrideSeconds, taskObj, opts)
+ opts: { onFinish:function, isPomodoro:boolean }
+*/
+function startActivity(taskId, overrideSeconds, taskObj, opts={}){
+  const task = taskObj || state.tasks.find(x=>x.id===taskId) || { id:taskId, title:taskId };
+  const duration = overrideSeconds || task.duration || 0;
+  activity = {
+    active:true,
+    taskId,
+    title: task.title || taskId,
+    duration,
+    startedAt: Date.now(),
+    paused:false,
+    elapsed:0,
+    _onFinish: typeof opts.onFinish === 'function' ? opts.onFinish : null,
+    _isPomodoro: !!opts.isPomodoro,
+    _taskMusicStarted:false,
+    _taskMusicKind:null,
+    nonBlocking: !!opts.nonBlocking
+  };
+
+  const tt = state.tasks.find(x=>x.id===taskId);
+  if (tt){ tt.lastDuration = duration; saveState(); }
+
+  if (task.musicRecommended && state.meta.taskMusic){
+    try { playBackground('task', state.meta.musicChoice); activity._taskMusicStarted = true; activity._taskMusicKind = 'audioElem'; }
+    catch(e){ startPad('task', state.meta.musicChoice); activity._taskMusicStarted = true; activity._taskMusicKind = 'pad'; }
+  }
+
+  if (state.meta.globalMusic){
+    try { playBackground('global', state.meta.musicChoice); } catch(e){ startPad('global', state.meta.musicChoice); }
+  }
+
+  if (tickInterval) clearInterval(tickInterval);
+  tickInterval = setInterval(tick, 250);
+  renderActivityOverlay();
+}function tick(){
+  if (!activity.active) return;
+  if (!activity.paused) activity.elapsed = Math.floor((Date.now() - activity.startedAt)/1000);
+  if (activity.duration > 0 && activity.elapsed >= activity.duration){
+    // exactly one chime
+    playSingleChime();
+
+    // Pomodoro handling: if this was focus period (isPomodoro true), start 5-min break
+    if (activity._isPomodoro && activity.taskId === 'pomodoro'){
+      // stop task music (focus)
+      if (activity._taskMusicStarted){
+        if (activity._taskMusicKind === 'audioElem') stopBackground('task'); else stopPad('task');
+        activity._taskMusicStarted = false;
+      }
+      startBreakForPomodoro();
+      return;
+    }
+
+    // If finishing a pomodoro-break: mark pomodoro done
+    if (activity.taskId === 'pomodoro-break'){
+      const day = todayKey(); ensureDayData(day); state.data[day].completed['pomodoro'] = true; saveState();
+      if (activity._taskMusicStarted){
+        if (activity._taskMusicKind === 'audioElem') stopBackground('task'); else stopPad('task');
+        activity._taskMusicStarted = false;
+      }
+      stopActivity(false); renderTasks(); return;
+    }
+
+    // Default completion: mark normal tasks
+    try {
+      const id = String(activity.taskId);
+      if (!id.startsWith('reading:') && !id.startsWith('workout-item:')){
+        const t = state.tasks.find(x=>x.id===activity.taskId);
+        if (t){
+          const day = todayKey(); ensureDayData(day);
+          if (t.type === 'toggle'){
+            state.data[day].completed[t.id] = Math.min((state.data[day].completed[t.id]||0)+1, t.target||1);
+          } else if (t.repeatable){
+            state.data[day].completed[t.id] = (state.data[day].completed[t.id]||0) + 1;
+            if (t.maxPerDay) state.data[day].completed[t.id] = Math.min(state.data[day].completed[t.id], t.maxPerDay);
+          } else {
+            state.data[day].completed[t.id] = true;
+          }
+          saveState();
+        }
+      }
+      if (activity._onFinish) {
+        try { activity._onFinish(); } catch(e) { console.warn('onFinish err', e); }
+      }
+    } catch(e){ console.warn(e); }
+
+    if (activity._taskMusicStarted){
+      if (activity._taskMusicKind === 'audioElem') stopBackground('task'); else stopPad('task');
+      activity._taskMusicStarted = false;
+    }
+
+    stopActivity(false);
+    renderTasks();
+  } else {
+    renderActivityOverlay();
+  }
+}
+
+/* Start 5-minute break for pomodoro */
+function startBreakForPomodoro(){
+  const secs = 5 * 60; // 5 minutes
+  activity = { active:true, taskId:'pomodoro-break', duration:secs, startedAt: Date.now(), paused:false, elapsed:0, _onFinish:null, _taskMusicStarted:false };
+  if (state.meta.taskMusic){
+    try { playBackground('task', state.meta.musicChoice); activity._taskMusicStarted = true; activity._taskMusicKind = 'audioElem'; }
+    catch(e){ startPad('task', state.meta.musicChoice); activity._taskMusicStarted = true; activity._taskMusicKind = 'pad'; }
+  }
+  if (tickInterval) clearInterval(tickInterval);
+  tickInterval = setInterval(tick, 250);
+  renderActivityOverlay();
+}
+
+function pauseResumeActivity(){
+  if (!activity.active) return;
+  activity.paused = !activity.paused;
+  if (!activity.paused) activity.startedAt = Date.now() - (activity.elapsed||0)*1000;
+  if (activity._taskMusicStarted){
+    if (activity._taskMusicKind === 'audioElem'){
+      if (activity.paused) { try{ bgAudio.task?.pause(); }catch(e){} } else { try{ bgAudio.task?.play().catch(()=>{}); }catch(e){} }
+    } else {
+      if (padNodes.task) padNodes.task.setVolume(activity.paused ? 0.004 : 0.02);
+    }
+  }
+  renderActivityOverlay();
+}
+
+function stopActivity(markDone=false){
+  if (!activity.active) return;
+  const wasNonBlocking = !!activity.nonBlocking; // <-- запомним, был ли таймер фоновым
+
+  if (markDone){
+    const t = state.tasks.find(x=>x.id===activity.taskId);
+    if (t){
+      const day = todayKey(); ensureDayData(day);
+      if (t.type === 'toggle') state.data[day].completed[t.id] = Math.min((state.data[day].completed[t.id]||0)+1, t.target||1);
+      else if (t.repeatable) {
+        state.data[day].completed[t.id] = (state.data[day].completed[t.id]||0) + 1;
+        if (t.maxPerDay) state.data[day].completed[t.id] = Math.min(state.data[day].completed[t.id], t.maxPerDay);
+      }
+      else state.data[day].completed[t.id] = true;
+      saveState();
+    }
+  }
+
+  if (activity._taskMusicStarted){
+    if (activity._taskMusicKind === 'audioElem') stopBackground('task'); else stopPad('task');
+    activity._taskMusicStarted = false;
+  }
+
+  activity = { active:false };
+  if (tickInterval){ clearInterval(tickInterval); tickInterval = null; }
+
+  // Не закрываем модал, если это был nonBlocking-таймер (например, упражнение в "Мини-тренировка")
+  if (!wasNonBlocking) hideModal();
+  renderTasks();
+}/* Render the overlay timer UI */
+function renderActivityOverlay(){
+  if (!activity.active){ hideModal(); return; }
+
+  // Для фоновых (nonBlocking) активностей показываем плавающий индикатор,
+  // чтобы пользователь остался в модале "Мини-тренировка" и мог отмечать упражнения.
+  if (activity.nonBlocking){
+    renderFloatingActivityOverlay();
+    return;
+  }
+
+  modalRoot.innerHTML = ''; modalRoot.style.display = 'block';
+  const backdrop = createBackdrop();
+  const modal = document.createElement('div'); modal.className='modal';
+  const header = document.createElement('div'); header.className='modal-header';
+  const title = document.createElement('div'); title.className='modal-title';
+  if (activity.taskId === 'pomodoro-break') {
+    title.textContent = 'Короткий перерыв (5 мин)';
+  } else {
+    const task = state.tasks.find(x=>x.id===activity.taskId);
+    title.textContent = activity.title || task?.title || (String(activity.taskId).startsWith('reading:') ? 'Чтение' : activity.taskId);
+  }
+  const closeBtn = document.createElement('button'); closeBtn.className='small-delete'; closeBtn.textContent='✕'; closeBtn.title='Остановить таймер';
+  closeBtn.addEventListener('click', ()=>{ stopActivity(false); hideModal(); });
+  header.appendChild(title); header.appendChild(closeBtn);
+
+  const body = document.createElement('div'); body.className='modal-body';
+  const timerBig = document.createElement('div'); timerBig.style.display='flex'; timerBig.style.flexDirection='column'; timerBig.style.alignItems='center'; timerBig.style.justifyContent='center'; timerBig.style.height='160px';
+  const elapsed = activity.paused ? activity.elapsed : Math.floor((Date.now() - activity.startedAt)/1000);
+  const remaining = Math.max((activity.duration||0) - elapsed, 0);
+  const mm = Math.floor(remaining/60); const ss = remaining % 60;
+  const timeEl = document.createElement('div'); timeEl.className='big-time'; timeEl.textContent = `${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+  timerBig.appendChild(timeEl);
+  body.appendChild(timerBig);
+
+  const footer = document.createElement('div'); footer.className='modal-footer';
+  const controls = document.createElement('div'); controls.className='controls';
+  const leftBtns = document.createElement('div');
+  const pauseBtn = document.createElement('button'); pauseBtn.className='secondary'; pauseBtn.textContent = activity.paused ? 'Продолжить' : 'Пауза'; pauseBtn.addEventListener('click', pauseResumeActivity);
+  const endBtn = document.createElement('button'); endBtn.className='secondary'; endBtn.textContent = 'Завершить'; endBtn.addEventListener('click', ()=>{ stopActivity(true); renderTasks(); });
+  leftBtns.appendChild(pauseBtn); leftBtns.appendChild(endBtn);
+  controls.appendChild(leftBtns);
+
+  if (activity._taskMusicStarted){
+    const musicInd = document.createElement('div'); musicInd.className='music-indicator'; musicInd.textContent='🎵 Музыка';
+    controls.appendChild(musicInd);
+  }
+  footer.appendChild(controls);
+  modal.appendChild(header); modal.appendChild(body); modal.appendChild(footer); backdrop.appendChild(modal); modalRoot.appendChild(backdrop);
+}
+
+/* Плавающий индикатор для фоновых (nonBlocking) активностей */
+function renderFloatingActivityOverlay(){
+  if (!activity || !activity.active) { const exel = document.getElementById('floating-activity'); if (exel) exel.remove(); return; }
+
+  let el = document.getElementById('floating-activity');
+  if (!el){
+    el = document.createElement('div');
+    el.id = 'floating-activity';
+    el.style.position = 'fixed';
+    el.style.right = '12px';
+    el.style.top = '12px';
+    el.style.zIndex = 99999;
+    el.style.background = 'rgba(255,255,255,0.98)';
+    el.style.border = '1px solid rgba(0,0,0,0.08)';
+    el.style.padding = '8px 10px';
+    el.style.borderRadius = '10px';
+    el.style.boxShadow = '0 6px 18px rgba(2,6,23,0.12)';
+    el.style.fontFamily = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial';
+    document.body.appendChild(el);
+  }
+
+  const remaining = Math.max((activity.duration||0) - (activity.paused ? activity.elapsed : Math.floor((Date.now() - activity.startedAt)/1000)), 0);
+  const mm = Math.floor(remaining/60);
+  const ss = remaining % 60;
+  el.innerHTML = `
+    <div style="font-weight:700;font-size:13px;margin-bottom:6px">${activity.title || activity.taskId}</div>
+    <div style="font-weight:800;font-size:14px;text-align:center">${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}</div>
+    <div style="display:flex;gap:8px;margin-top:8px;justify-content:center">
+      <button class="secondary" id="fltPauseBtn">${activity.paused ? 'Продолжить' : 'Пауза'}</button>
+      <button class="secondary" id="fltStopBtn">Стоп</button>
+    </div>
+  `;
+
+  document.getElementById('fltPauseBtn').onclick = ()=>{
+    pauseResumeActivity();
+  };
+  document.getElementById('fltStopBtn').onclick = ()=>{
+    stopActivity(false);
+    const exel = document.getElementById('floating-activity'); if (exel) exel.remove();
+  };
+}
+/* ====== Plans modal (unchanged) ====== */
+function openPlansModal(){
+  modalRoot.innerHTML=''; modalRoot.style.display='block';
+  const backdrop=createBackdrop();
+  const modal=document.createElement('div'); modal.className='modal';
+  const header=document.createElement('div'); header.className='modal-header';
+  const title=document.createElement('div'); title.className='modal-title'; title.textContent='Планы на день';
+  const closeBtn=document.createElement('button'); closeBtn.className='small-delete'; closeBtn.textContent='✕'; closeBtn.addEventListener('click', ()=>hideModal());
+  header.appendChild(title); header.appendChild(closeBtn);
+  const body=document.createElement('div'); body.className='modal-body';
+  const day=todayKey(); ensureDayData(day);
+
+  const addRow=document.createElement('div'); addRow.style.display='flex'; addRow.style.gap='8px'; addRow.style.marginBottom='12px';
+  const input=document.createElement('input'); input.type='text'; input.placeholder='Добавить план на сегодня'; input.className='custom-input';
+  input.addEventListener('keydown',(ev)=>{ if(ev.key==='Enter'){ addPlan(input.value.trim()); input.value=''; renderPlansList(); }});
+  const addBtn=document.createElement('button'); addBtn.className='primary-wide'; addBtn.style.flex='0 0 auto'; addBtn.textContent='Добавить'; addBtn.addEventListener('click', ()=>{ if (input.value.trim()){ addPlan(input.value.trim()); input.value=''; renderPlansList(); }});
+  addRow.appendChild(input); addRow.appendChild(addBtn); body.appendChild(addRow);
+
+  const listWrapper=document.createElement('div'); listWrapper.id='plansListWrapper';
+  function renderPlansList(){
+    listWrapper.innerHTML='';
+    const plans = state.data[day].plans || [];
+    if (plans.length === 0){ const em=document.createElement('div'); em.className='small-note'; em.textContent='Пока нет планов.'; listWrapper.appendChild(em); }
+    else {
+      plans.forEach((p,idx)=>{
+        const item=document.createElement('div'); item.className='plan-item'+(p.done?' done':'');
+        const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=!!p.done; cb.addEventListener('change', ()=>{ togglePlan(idx); renderPlansList(); });
+        const text=document.createElement('div'); text.style.flex='1'; text.textContent=p.text;
+        const del=document.createElement('button'); del.className='action-btn'; del.textContent='Удалить'; del.addEventListener('click', ()=>{ removePlan(idx); renderPlansList(); });
+        item.appendChild(cb); item.appendChild(text); item.appendChild(del); listWrapper.appendChild(item);
+      });
+    }
+  }
+  function addPlan(text){ if(!text) return; state.data[day].plans = state.data[day].plans || []; state.data[day].plans.unshift({text,done:false}); saveState(); }
+  function togglePlan(i){ state.data[day].plans[i].done = !state.data[day].plans[i].done; saveState(); }
+  function removePlan(i){ state.data[day].plans.splice(i,1); saveState(); }
+  function resetPlans(){ state.data[day].plans = []; saveState(); renderPlansList(); }
+
+  body.appendChild(listWrapper); renderPlansList();
+
+  const footer=document.createElement('div'); footer.className='modal-footer';
+  const resetBtn=document.createElement('button'); resetBtn.className='secondary'; resetBtn.textContent='Сбросить планы'; resetBtn.addEventListener('click', ()=>{ if(confirm('Удалить все планы?')) resetPlans(); });
+  const closeButton=document.createElement('button'); closeButton.className='primary-wide'; closeButton.textContent='Готово'; closeButton.addEventListener('click', ()=>{ hideModal(); renderTasks(); });
+  footer.appendChild(resetBtn); footer.appendChild(closeButton);
+
+  modal.appendChild(header); modal.appendChild(body); modal.appendChild(footer); backdrop.appendChild(modal); modalRoot.appendChild(backdrop);
+}
+
+/* ====== Calendar (restored) ====== */
+function openCalendar(){
+  modalRoot.innerHTML=''; modalRoot.style.display='block';
+  const backdrop = createBackdrop();
+  const modal = document.createElement('div'); modal.className='modal';
+  const header = document.createElement('div'); header.className='modal-header';
+  const title = document.createElement('div'); title.className='modal-title'; title.textContent = 'Календарь';
+  const closeBtn = document.createElement('button'); closeBtn.className='small-delete'; closeBtn.textContent='✕'; closeBtn.addEventListener('click', ()=> hideModal());
+  header.appendChild(title); header.appendChild(closeBtn);
+  const body = document.createElement('div'); body.className='modal-body';
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const first = new Date(year, month, 1);
+  const startDay = (first.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+
+  const grid = document.createElement('div'); grid.className='calendar-grid';
+  for (let i=0;i<startDay;i++){ const blank=document.createElement('div'); blank.className='cal-day'; blank.style.opacity=0.35; grid.appendChild(blank); }
+  for (let d=1; d<=daysInMonth; d++){
+    const key = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayBox = document.createElement('div'); dayBox.className='cal-day'; dayBox.textContent=d;
+    const dayData = state.data[key];
+    if (dayData){
+      const completedCount = Object.keys(dayData.completed || {}).reduce((acc,k)=> {
+        const t = state.tasks.find(x=>x.id===k);
+        if (!t) return acc;
+        if (t.type === 'toggle') return acc + (dayData.completed[k] || 0);
+        if (t.repeatable) return acc + (dayData.completed[k] || 0);
+        return acc + (dayData.completed[k] ? 1 : 0);
+      }, 0);
+      if (completedCount > 0){ const badge = document.createElement('div'); badge.className='badge'; badge.textContent = completedCount; dayBox.appendChild(badge); dayBox.style.background='#dcfce7'; }
+    }
+    dayBox.addEventListener('click', ()=> showDayDetails(key));
+    grid.appendChild(dayBox);
+  }
+  body.appendChild(grid);
+  const legend = document.createElement('div'); legend.className='cal-legend';
+  const l1 = document.createElement('div'); l1.className='item'; l1.innerHTML = '<div class="sw" style="background:#dcfce7;border:1px solid rgba(0,0,0,0.04)"></div><div>— Есть отметки</div>';
+  const l2 = document.createElement('div'); l2.className='item'; l2.innerHTML = '<div class="sw" style="background:#fff;border:1px solid rgba(0,0,0,0.04)"></div><div>— Пусто</div>';
+  legend.appendChild(l1); legend.appendChild(l2);
+  body.appendChild(legend);
+  modal.appendChild(header); modal.appendChild(body); backdrop.appendChild(modal); modalRoot.appendChild(backdrop);
+
+  function showDayDetails(key){
+    const dayData = state.data[key] || { completed:{}, plans:[], journalsHistory:[], glasses:0 };
+    const detailsBackdrop = createBackdrop();
+    const detailsModal = document.createElement('div'); detailsModal.className='modal';
+    const hdr = document.createElement('div'); hdr.className='modal-header';
+    const ttl = document.createElement('div'); ttl.className='modal-title'; ttl.textContent = key;
+    const closeD = document.createElement('button'); closeD.className='small-delete'; closeD.textContent='✕'; closeD.addEventListener('click', ()=>{ detailsBackdrop.remove(); });
+    hdr.appendChild(ttl); hdr.appendChild(closeD);
+    const bd = document.createElement('div'); bd.className='modal-body';
+    const comps = document.createElement('div'); comps.className='modal-section';
+    const h = document.createElement('h4'); h.textContent='Выполнено'; comps.appendChild(h);
+    const list = document.createElement('div');
+    const keys = Object.keys(dayData.completed || {});
+    if (!keys.length){ const em=document.createElement('div'); em.className='small-note'; em.textContent='Ничего не выполнено.'; list.appendChild(em); }
+    else { keys.forEach(k=>{ const t = state.tasks.find(x=>x.id===k); const row=document.createElement('div'); row.style.display='flex'; row.style.justifyContent='space-between'; row.style.padding='6px 0'; row.innerHTML = `<div>${t ? t.title : k}</div><div style="font-weight:700">${dayData.completed[k] || 0}</div>`; list.appendChild(row); }); }
+    comps.appendChild(list); bd.appendChild(comps); detailsModal.appendChild(hdr); detailsModal.appendChild(bd); detailsBackdrop.appendChild(detailsModal); document.body.appendChild(detailsBackdrop);
+    detailsBackdrop.addEventListener('click', (e)=>{ if (e.target === detailsBackdrop) detailsBackdrop.remove(); });
+  }
+}
+
+/* ====== Small helpers and workout/plans actions ====== */
+function addWaterNow(taskId){ const day=todayKey(); ensureDayData(day); state.data[day].completed = state.data[day].completed || {}; const task = state.tasks.find(t=>t.id===taskId); if (!task) return; state.data[day].completed[taskId] = Math.min((state.data[day].completed[taskId]||0)+1, task.target||1); saveState(); }
+function getWorkoutsForDay(idx){ state.workouts = state.workouts || {}; state.workouts[idx] = state.workouts[idx] || []; return state.workouts[idx]; }
+function addWorkoutExercise(idx, text){ if(!text || !text.trim()) return; getWorkoutsForDay(idx).push({ text: text.trim(), done: false }); saveState(); }
+function toggleWorkoutExercise(idx,i){ const arr=getWorkoutsForDay(idx); if(!arr[i]) return; arr[i].done = !arr[i].done; saveState(); }
+function deleteWorkoutExercise(idx,i){ const arr=getWorkoutsForDay(idx); arr.splice(i,1); saveState(); }
+function resetWorkoutDay(idx){ const arr=getWorkoutsForDay(idx); arr.forEach(e=> e.done=false); saveState(); }
+
+/* Plans helpers (used in plans modal) */
+function togglePlan(i){ const day=todayKey(); ensureDayData(day); state.data[day].plans[i].done = !state.data[day].plans[i].done; saveState(); }
+function removePlan(i){ const day=todayKey(); ensureDayData(day); state.data[day].plans.splice(i,1); saveState(); }
+
+/* ====== Toggles wiring ====== */
+function updateToggles(){
+  globalMusicBtn.textContent = state.meta.globalMusic ? '🎵' : '♪';
+  globalMusicBtn.style.background = state.meta.globalMusic ? '#eef2ff' : '#fff';
+  soundBtn.textContent = state.meta.sound ? '🔊' : '🔇';
+  soundBtn.style.background = state.meta.sound ? '#eef2ff' : '#fff';
+}
+globalMusicBtn.addEventListener('click', ()=>{ state.meta.globalMusic = !state.meta.globalMusic; saveState(); if (state.meta.globalMusic) playBackground('global', state.meta.musicChoice); else stopBackground('global'); updateToggles(); });
+musicSelectBtn.addEventListener('click', ()=> openMusicSelector());
+soundBtn.addEventListener('click', ()=>{ state.meta.sound = !state.meta.sound; saveState(); updateToggles(); });
+calendarBtn.addEventListener('click', ()=> openCalendar());
+
+document.querySelectorAll('.quick-item').forEach(btn=> btn.addEventListener('click', ()=> {
+  const id = btn.dataset.quick;
+  if (id === 'plans') openPlansModal();
+  else {
+    const t = state.tasks.find(x=>x.id===id);
+    if (t) showModalForTask(t);
+  }
+}));
+
+/* ====== Init ====== */
+function init(){
+  const water = state.tasks.find(t=>t.id==='water'); if (water && (!Number.isFinite(water.target) || water.target <= 0)) { water.target = 5; saveState(); }
+  const breath = state.tasks.find(t=>t.id==='breath'); if (breath && (!Number.isFinite(breath.maxPerDay) || breath.maxPerDay <= 0)) { breath.maxPerDay = 3; saveState(); }
+  updateToggles(); renderTasks();
+}
+init();
+
+/* Expose some helpers for debug */
+window._habit = { state, saveState, playBackground, stopBackground, startActivity, stopActivity, getWorkoutsForDay, addWorkoutExercise };
+
+</script>
+<script>
+  // Убираем заставку через 2 секунды
+  setTimeout(() => {
+    document.getElementById('splash').style.opacity = '0';
+    setTimeout(() => document.getElementById('splash').style.display = 'none', 500);
+  }, 2000);
+
+  // Регистрация service worker для офлайн-работы
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').then(() => {
+      console.log('Service Worker зарегистрирован');
+    }).catch((err) => {
+      console.log('Ошибка регистрации Service Worker:', err);
+    });
+  }
+// === Фоновая активность для общего таймера ===
+// === Фоновая активность для общего таймера (расширенная) ===
+let backgroundActivity = null;
+let backgroundTickInterval = null;
+
+function startBackgroundActivity(id, seconds, taskObj = {}, opts = {}){
+  // если уже идёт — перезапускаем или возобновляем
+  backgroundActivity = {
+    id,
+    duration: Number(seconds) || 0,
+    startedAt: Date.now(),
+    elapsed: 0,
+    paused: false,
+    _onFinish: typeof opts.onFinish === 'function' ? opts.onFinish : null,
+    _musicStarted: false,
+    _musicKind: null,
+    _playMusic: !!opts.playMusic
+  };
+
+  // старт музыки (опционально)
+  if (backgroundActivity._playMusic && state?.meta?.musicChoice) {
+    try { playBackground('background', state.meta.musicChoice); backgroundActivity._musicStarted = true; backgroundActivity._musicKind = 'audioElem'; }
+    catch(e){ try { startPad('background', state.meta.musicChoice); backgroundActivity._musicStarted = true; backgroundActivity._musicKind = 'pad'; } catch(e2){ /* noop */ } }
+  }
+
+  if (backgroundTickInterval) clearInterval(backgroundTickInterval);
+  backgroundTickInterval = setInterval(backgroundTick, 250);
+  renderBackgroundFloating();
+}
+
+function pauseBackgroundActivity(){
+  if (!backgroundActivity || backgroundActivity.paused) return;
+  backgroundActivity.paused = true;
+  // вычислим elapsed и сбросим startedAt, сохранённое elapsed будем учитывать при возобновлении
+  backgroundActivity.elapsed = Math.floor((Date.now() - backgroundActivity.startedAt) / 1000);
+  // остановим/поставим на паузу музыку корректно
+  if (backgroundActivity._musicStarted) {
+    if (backgroundActivity._musicKind === 'audioElem') bgAudio?.background?.pause?.(); else if (padNodes?.background) padNodes.background.setVolume(0.0001);
+  }
+  renderBackgroundFloating();
+}
+
+function resumeBackgroundActivity(){
+  if (!backgroundActivity || !backgroundActivity.paused) return;
+  backgroundActivity.paused = false;
+  // пересчитаем startedAt так, чтобы elapsed сохранённый учитывался
+  backgroundActivity.startedAt = Date.now() - (backgroundActivity.elapsed||0) * 1000;
+  // музыка
+  if (backgroundActivity._musicStarted) {
+    if (backgroundActivity._musicKind === 'audioElem') bgAudio?.background?.play?.().catch(()=>{}); else if (padNodes?.background) padNodes.background.setVolume(0.02);
+  }
+  renderBackgroundFloating();
+}
+
+function stopBackgroundActivity(){
+  if (!backgroundActivity) return;
+  // остановим музыку, если играла
+  if (backgroundActivity._musicStarted) {
+    if (backgroundActivity._musicKind === 'audioElem') stopBackground('background'); else stopPad('background');
+    backgroundActivity._musicStarted = false;
+  }
+  // вызов колбэка перед уничтожением (если указан)
+  try { if (backgroundActivity._onFinish) backgroundActivity._onFinish(); } catch(e){ console.warn(e); }
+
+  backgroundActivity = null;
+  if (backgroundTickInterval) { clearInterval(backgroundTickInterval); backgroundTickInterval = null; }
+  const floater = document.getElementById('background-timer-float'); if (floater) floater.remove();
+  renderTasks();
+}
+
+function backgroundTick(){
+  if (!backgroundActivity || backgroundActivity.paused) return;
+  backgroundActivity.elapsed = Math.floor((Date.now() - backgroundActivity.startedAt) / 1000);
+  if (backgroundActivity.duration > 0 && backgroundActivity.elapsed >= backgroundActivity.duration){
+    // сигнал окончания
+    playSingleChime?.();
+    // вызовем onFinish, затем остановим (onFinish может обновить data)
+    try { if (backgroundActivity._onFinish) backgroundActivity._onFinish(); } catch(e){ console.warn(e); }
+    stopBackgroundActivity();
+    return;
+  }
+  renderBackgroundFloating();
+}
+
+function renderBackgroundFloating(){
+  const ap = document.getElementById('appPhone') || document.body;
+  let el = document.getElementById('background-timer-float');
+
+  if (!backgroundActivity){
+    if (el) el.remove();
+    return;
+  }
+
+  if (!el){
+    el = document.createElement('div');
+    el.id = 'background-timer-float';
+    el.style.position = 'fixed';
+    el.style.right = '12px';
+    el.style.top = '12px';
+    el.style.zIndex = 99999;
+    el.style.background = 'rgba(255,255,255,0.98)';
+    el.style.border = '1px solid rgba(0,0,0,0.08)';
+    el.style.padding = '8px 10px';
+    el.style.borderRadius = '10px';
+    el.style.boxShadow = '0 6px 18px rgba(2,6,23,0.12)';
+    el.style.fontFamily = 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial';
+    el.style.minWidth = '92px';
+    ap.appendChild(el);
+  }
+
+  const elapsed = backgroundActivity.paused ? backgroundActivity.elapsed : Math.floor((Date.now() - backgroundActivity.startedAt)/1000);
+  const remaining = Math.max((backgroundActivity.duration||0) - elapsed, 0);
+  const mm = Math.floor(remaining/60); const ss = remaining % 60;
+  el.innerHTML = `
+    <div style="font-weight:700;font-size:14px;text-align:center">${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}</div>
+    <div style="display:flex;gap:8px;margin-top:8px;justify-content:center">
+      <button class="secondary" id="bgPauseBtn">${backgroundActivity.paused ? 'Продолжить' : 'Пауза'}</button>
+      <button class="secondary" id="bgStopBtn">Стоп</button>
+    </div>
+  `;
+
+  const pauseBtn = document.getElementById('bgPauseBtn');
+  const stopBtn = document.getElementById('bgStopBtn');
+  pauseBtn.onclick = ()=>{
+    if (backgroundActivity.paused) resumeBackgroundActivity(); else pauseBackgroundActivity();
+    renderBackgroundFloating();
+  };
+  stopBtn.onclick = ()=>{
+    stopBackgroundActivity();
+  };
+}
+</script>
+</body>
+</html>
